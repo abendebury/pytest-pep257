@@ -1,0 +1,24 @@
+Metadata-Version: 1.0
+Name: pytest-pep257
+Version: 0.0.1
+Summary: py.test plugin for pep257
+Home-page: UNKNOWN
+Author: Anders Emil Nielsen
+Author-email: aemilnielsen@gmail.com
+License: MIT License
+Description: PEP 257 plugin for py.test
+        =============
+        
+        Minimal version of PEP 257 reports with py.test
+        
+        Installation
+        ============
+        
+        Install with pip:
+        
+        ::
+        
+            pip install pytest-pep257
+        
+        
+Platform: UNKNOWN
