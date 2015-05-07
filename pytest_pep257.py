@@ -4,8 +4,11 @@ py.test plugin that the uses PEP 257 docstring style checker
 (https://github.com/GreenSteam/pep257/) to report compliance with Python
 PEP 257 (http://www.python.org/dev/peps/pep-0257).
 """
-import pytest
+import os
+import re
+
 import pep257
+import pytest
 
 
 def pytest_addoption(parser):
@@ -13,13 +16,18 @@ def pytest_addoption(parser):
     group.addoption('--pep257',
                     action='store_true',
                     help="perform pep257 compliance on .py files")
+    parser.addini('pep257ignore', type='linelist',
+        help='Each line specifies a glob pattern and whitespace '
+             'separated PEP257 errors and warnings that will be ignored, '
+             'example: *.py D203')
 
 
 def pytest_collect_file(parent, path):
     config = parent.config
-    if config.option.pep257 and file_should_be_checked(path):
-        config._pep257ignore = config.getini("pep257ignore")
-        return Pep257Item(path, parent)
+    ignore = Ignorer(config.getini('pep257ignore'))(path)
+    if config.option.pep257 and file_should_be_checked(path) and \
+            ignore is not None:
+        return Pep257Item(path, parent, ignore)
 
 
 def file_should_be_checked(path):
@@ -27,13 +35,13 @@ def file_should_be_checked(path):
 
 
 class Pep257Item(pytest.Item, pytest.File):
-    def __init__(self, path, parent, ignored):
+    def __init__(self, path, parent, ignore):
         super(Pep257Item, self).__init__(path, parent)
-        self.ignored = ignored or None
+        self.ignore = ignore
 
     def runtest(self):
-        check_result = pep257.check([str(self.fspath)], ignore=self.ignored)
-        errors = [str(error) for error in check_result]
+        errors = [str(error) for error in pep257.check([str(self.fspath)],
+                                                       self.ignore)]
         if errors:
             raise PEP257Error("\n".join(errors))
 
@@ -48,3 +56,35 @@ class Pep257Item(pytest.Item, pytest.File):
 
 class PEP257Error(Exception):
     """Indicate error due to pep257 checks."""
+
+
+class Ignorer:
+    """Based on Pytest-PEP8 ignorer."""
+
+    def __init__(self, ignorelines, coderex=re.compile('D\d\d\d')):
+        self.ignores = ignores = []
+        for line in ignorelines:
+            i = line.find('#')
+            if i != -1:
+                line = line[:1]
+            try:
+                glob, ign = line.split(None, 1)
+            except ValueError:
+                glob, ign = None, line
+            if glob and coderex.match(glob):
+                glob, ign = None, line
+            ign = ign.split()
+            if "ALL" in ign:
+                ign = None
+            if glob and "/" != os.sep and "/" in glob:
+                glob = glob.replace("/", os.sep)
+            ignores.append((glob, ign))
+
+    def __call__(self, path):
+        l = []
+        for (glob, ignlist) in self.ignores:
+            if not glob or path.fnmatch(glob):
+                if ignlist is None:
+                    return None
+                l.extend(ignlist)
+        return l
