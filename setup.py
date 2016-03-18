@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name='pytest-pep257',
-    version='0.0.1',
+    version='0.0.2',
     description='py.test plugin for pep257',
     author='Anders Emil Nielsen',
     author_email='aemilnielsen@gmail.com',
