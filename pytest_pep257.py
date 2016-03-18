@@ -18,6 +18,7 @@ def pytest_addoption(parser):
 def pytest_collect_file(parent, path):
     config = parent.config
     if config.option.pep257 and file_should_be_checked(path):
+        config._pep257ignore = config.getini("pep257ignore")
         return Pep257Item(path, parent)
 
 
@@ -26,11 +27,13 @@ def file_should_be_checked(path):
 
 
 class Pep257Item(pytest.Item, pytest.File):
-    def __init__(self, path, parent):
+    def __init__(self, path, parent, ignored):
         super(Pep257Item, self).__init__(path, parent)
+        self.ignored = ignored or None
 
     def runtest(self):
-        errors = [str(error) for error in pep257.check([str(self.fspath)])]
+        check_result = pep257.check([str(self.fspath)], ignore=self.ignored)
+        errors = [str(error) for error in check_result]
         if errors:
             raise PEP257Error("\n".join(errors))
 
