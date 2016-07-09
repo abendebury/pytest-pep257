@@ -10,7 +10,7 @@ setuptools.setup(
     py_modules=['pytest_pep257'],
     install_requires=[
         'pytest>=2.6.0',
-        'pep257>=0.3.2,<0.4.0'
+        'pep257>=0.3.2'
     ],
     entry_points={'pytest11': ['pytest_pep257 = pytest_pep257']},
     license='MIT License'
